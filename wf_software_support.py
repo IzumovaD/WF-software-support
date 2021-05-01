@@ -549,6 +549,8 @@ def main_processing(data):
     #обработка самой последней группы слов
     word_formation_nests.append(nest_processing(vertices, curr_words))
     print_nests_in_file(word_formation_nests, vertices)
+    print("--- %s seconds ---\n" % (time.time() - start_time))
+    user_interface(word_formation_nests, vertices)
 
 #функция печати одного гнезда
 def print_nest(nest, key, k):
@@ -575,47 +577,47 @@ def print_nests_in_file(word_formation_nests, vertices):
     out_file.write(string)
 
 #функция поиска группы родственных слов для заданного слова
-def search_related_words(word):
+def search_related_words(word, word_formation_nests):
     for dic in word_formation_nests:
         for key in dic:
             if modify_word(key) == word:
                 return dic, key
 
 #функция продолжения цепочки, начиная с заданного слова
-def continue_chain(word):
+def continue_chain(word, word_formation_nests, vertices):
     #поиск родственной группы слов для заданного слова
-    nest, word = search_related_words(word)
+    nest, word = search_related_words(word, word_formation_nests)
     string = word + "\n"
     string += print_nest(nest, word, 1)
     print(string)
 
 #функция печати цепочки
-def print_chain(chain, word, k):
+def print_chain(chain, word):
     res = ""
     if word not in chain:
         res += word + "\n"
     else:
-        res += word + " --> " + print_chain(chain, chain[word], k + 1)
+        res += word + " --> " + print_chain(chain, chain[word])
     return res 
     
 #функция печати всех цепочек   
-def print_all_chains(word, nest, chain):
+def print_all_chains(vertices, word, nest, chain):
     if word in vertices:
-        string = print_chain(chain, word, 0)
+        string = print_chain(chain, word)
         print(string)
         return
     for key in nest:
         if word in nest[key]:
             chain[key] = word
-            print_all_chains(key, nest, chain)
+            print_all_chains(vertices, key, nest, chain)
 
 #функция восстановления цепочки по конечному слову
-def restore_chains(word):
-    nest, word = search_related_words(word)
-    print_all_chains(word, nest, {})
+def restore_chains(word, word_formation_nests, vertices):
+    nest, word = search_related_words(word, word_formation_nests)
+    print_all_chains(vertices, word, nest, {})
 
 #консольный пользовательский интерфейс
-def user_interface():
+def user_interface(word_formation_nests, vertices):
     while 1:
         print("Выберите действие:")
         print("1 - Восстановление цепочки по начальному слову")
@@ -625,11 +627,11 @@ def user_interface():
         if enter == 1:
             print("Введите слово:")
             word = input()
-            continue_chain(word)
+            continue_chain(word, word_formation_nests, vertices)
         if enter == 2:
             print("Введите слово:")
             word = input()
-            restore_chains(word)
+            restore_chains(word, word_formation_nests, vertices)
         if enter == 3:
             break
 
@@ -642,5 +644,3 @@ data = in_file.readlines()
 main_processing(data)
 out_file.close()
 in_file.close()
-print("--- %s seconds ---\n" % (time.time() - start_time))
-user_interface()
