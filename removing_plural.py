@@ -73,7 +73,6 @@ def search_singular(word, words):
 
 #функция удаления слов во множ. числе
 def del_plurals(words, pos_tags):
-    print(pos_tags)
     words_to_del = []
     for word in words:
         if pos_tags[word] == "NOUN":
