@@ -47,14 +47,16 @@ def modify_word(word):
 
 #функция определения числа существительного
 def identify_number(word, morph):
-    word = modify_word(word)
-    case = morph.parse(word)[0].tag.case
-    #если не именительный падеж
-    if case != "nomn":
-        return "PLURAL"
-    number = morph.parse(word)[0].tag.number
-    if number == "plur":
-        return "PLURAL"
+    if (word.endswith("Ы") or word.endswith("И") or word.endswith("А") or
+        word.endswith("Я") or word.endswith("Е")):
+        word = modify_word(word)
+        case = morph.parse(word)[0].tag.case
+        #если не именительный падеж
+        if case != "nomn":
+            return "PLURAL"
+        number = morph.parse(word)[0].tag.number
+        if number == "plur":
+            return "PLURAL"
     return "SINGULAR"
 
 #функция поиска слова в единственном числе
@@ -80,11 +82,6 @@ def del_plurals(words, pos_tags, morph):
                 if search_singular(word, words):
                     #добавляем слово в число удаляемых
                     words_to_del.append(word)
-    #обработка исключений (слов, которых нет в файле с признаками слов)
-    for word in words:
-        if (word not in words_to_del and word.endswith("*Ы") and
-            search_singular(word, words)):
-            words_to_del.append(word)
     #удаляем слова из группы
     for word in words_to_del:
         words.discard(word)

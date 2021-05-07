@@ -311,7 +311,7 @@ def search_shortest(words):
         max_morphs += 1
 
 #функция обработки неполной группы
-def gerunds_participles_start(derived_words, nest, pos_tags):
+def incomplete_group(derived_words, nest, pos_tags):
     #определяем, есть ли в гнезде глаголы (полная или неполная группа)
     flag = False
     for word in nest:
@@ -342,7 +342,7 @@ def is_gerund_or_verb(word, pos_tags):
 
 #функция обработки невозвратных деепричастий
 def gerunds_processing(gerunds, nest, pos_tags):
-    gerunds_participles_start(gerunds, nest, pos_tags)
+    incomplete_group(gerunds, nest, pos_tags)
     diffs = 1
     while len(gerunds) != 0:
         for k in range(0, diffs + 1):
@@ -441,7 +441,7 @@ def is_participle(word, pos_tags):
 
 #функция обработки невозвратных причастий без отрицательных префиксов
 def participles_processing(morph, participles, nest, pos_tags):
-    gerunds_participles_start(participles, nest, pos_tags)
+    incomplete_group(participles, nest, pos_tags)
     #допустимое число отличий
     diffs = 1
     while len(participles) != 0:
@@ -512,6 +512,7 @@ def nest_processing(vertices, nest, morph):
 
 #основная функция обработки всех групп однокоренных слов
 def main_processing(data, out_file):
+    count = 0
     start_time = time.time()
     morph = pymorphy2.MorphAnalyzer()
     #словообразовательные гнёзда - массив словарей, где в каждом словаре ключ - это
@@ -541,6 +542,7 @@ def main_processing(data, out_file):
             #начало новой группы слов
             if root not in curr_roots:
                 #обработка текущей группы слов
+                count += 1
                 word_formation_nests.append(nest_processing(vertices,
                                                             curr_words, morph))
                 #формируем новое множество корней
@@ -550,9 +552,11 @@ def main_processing(data, out_file):
         #добавляем слово в текущую группу слов для обработки
         curr_words.add(word)
     #обработка самой последней группы слов
+    count += 1
     word_formation_nests.append(nest_processing(vertices, curr_words, morph))
     print_nests_in_file(word_formation_nests, vertices, out_file)
     print("--- %s seconds ---\n" % (time.time() - start_time))
+    print(count)
     user_interface(word_formation_nests, vertices)
 
 #функция печати одного гнезда
@@ -616,7 +620,7 @@ def print_all_chains(vertices, word, nest, chain):
             print_all_chains(vertices, key, nest, chain)
 
 #функция восстановления цепочки по конечному слову
-def restore_chains(word, word_formation_nests, vertices):
+def restore_chain(word, word_formation_nests, vertices):
     nest, word = search_related_words(word, word_formation_nests)
     if word != "":
         print_all_chains(vertices, word, nest, {})
@@ -636,6 +640,6 @@ def user_interface(word_formation_nests, vertices):
         if enter == 2:
             print("Введите слово:")
             word = input()
-            restore_chains(word, word_formation_nests, vertices)
+            restore_chain(word, word_formation_nests, vertices)
         if enter == 3:
             break
