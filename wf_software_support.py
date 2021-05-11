@@ -1,19 +1,6 @@
 import time
 import re
 import pymorphy2
-from root_allomorphs import root_allomorphs as allomorphs
-
-#функция создания множества корней
-def form_roots(root):
-    res = set()
-    #проверка, есть ли алломорфы у корня
-    for group in allomorphs:
-        if root in group:
-            res.update(group)
-            return res
-    #у корня нет алломорфов, группа состоит из одного корня
-    res.add(root)
-    return res
 
 #функция, оставляющая только слова минимальной длины
 def discard_applicants(words):
@@ -35,7 +22,7 @@ def discard_applicants(words):
     return res
 
 #функция отбора вершины СГ
-def vertex_search(nest, parts_of_speech):
+def search_vertex(nest, parts_of_speech):
     #максимальное число морфем (корень и окончание не считаем)
     max_morphs = 0
     #текущие претенденты на вершину СГ
@@ -111,7 +98,7 @@ def count_diffs(morph1, morph2):
     return count
 
 #функция нахождения количества отличий в словах с учётом алломорфизма
-def diff_search_allmrphs(word1, word2):
+def search_diff_allmrphs(word1, word2):
     diffs = 0
     for morph in word1:
         #учитываем только корневой алломорфизм
@@ -134,7 +121,7 @@ def is_privative(word):
     return False
 
 #функция поиска производных слов
-def derivate_search(parrent_words, nest, reflexives, privatives,
+def search_derivate(parrent_words, nest, reflexives, privatives,
                     gerunds, participles, diffs, pos_tags):
     #множество уже обработанных слов
     proc_words = set()
@@ -143,7 +130,7 @@ def derivate_search(parrent_words, nest, reflexives, privatives,
             if (word not in proc_words and word not in reflexives and
                 word not in privatives and word not in gerunds and
                 word not in participles):
-                if (diff_search_allmrphs(morph_selection(key),
+                if (search_diff_allmrphs(morph_selection(key),
                                          morph_selection(word)) == diffs and
                     not is_reflexive(word) and not is_privative(word) and
                     pos_tags[word] != "ADV PARTICIPLE" and
@@ -208,13 +195,13 @@ def modify_word(word):
     return word.lower()
 
 #функция поиска производящих слов для возвратных слов
-def producing_search_for_reflexives(nest, reflexives, diffs):
+def search_producing_for_reflexives(nest, reflexives, diffs):
     proc_words = set()
     for key in nest:
         if not is_reflexive(key):
             for word in reflexives:
                 if (word not in proc_words and
-                    diff_search_allmrphs(morph_selection(key),
+                    search_diff_allmrphs(morph_selection(key),
                                          morph_selection(word)) == diffs):
                     nest[key].append(word)
                     proc_words.add(word)
@@ -223,7 +210,7 @@ def producing_search_for_reflexives(nest, reflexives, diffs):
         else:
             for word in reflexives:
                 if (word not in proc_words and
-                    diff_search_allmrphs(morph_selection(key),
+                    search_diff_allmrphs(morph_selection(key),
                                          morph_selection(word)) == 1 and
                     is_reflexive(word)):
                     nest[key].append(word)
@@ -240,19 +227,19 @@ def reflexives_processing(reflexives, nest):
         for k in range(0, diffs + 1):
             while 1:
                 old_len = len(nest)
-                producing_search_for_reflexives(nest, reflexives, k)
+                search_producing_for_reflexives(nest, reflexives, k)
                 #если текущие цепочки больше не продолжить, заканчиваем цикл
                 if old_len - len(nest) == 0:
                     break
         diffs += 1
 
 #функция поиска производящих слов с наложенными на них условиями
-def producing_search(nest, derived_words, cond, arg, diffs):
+def search_producing(nest, derived_words, cond, arg, diffs):
     proc_words = set()
     for word in derived_words:
         for key in nest:
             if (word not in proc_words and
-                diff_search_allmrphs(morph_selection(key),
+                search_diff_allmrphs(morph_selection(key),
                                      morph_selection(word)) == diffs):
                 if cond is not True:
                     if arg is not True:
@@ -284,10 +271,10 @@ def has_not_prefix(word):
 def privatives_processing(privatives, nest):
     #первый проход - слова с отрицательными префиксами должны быть образованы
     #только от максимально похожих слов БЕЗ префиксов
-    producing_search(nest, privatives, has_not_prefix, True, 1)
+    search_producing(nest, privatives, has_not_prefix, True, 1)
     #второй проход - слова с отрицательными префиксами должны быть образованы
     #только от максимально похожих слов БЕЗ ОТРИЦАТЕЛЬНЫХ префиксов
-    producing_search(nest, privatives, is_not_privative, True, 1)
+    search_producing(nest, privatives, is_not_privative, True, 1)
     #третий и далее проход - слова с отрицательными префиксами могут быть
     #образованы от любых максимально похожих на них слов
     diffs = 1
@@ -295,7 +282,7 @@ def privatives_processing(privatives, nest):
         for k in range(0, diffs + 1):
             while 1:
                 old_len = len(nest)
-                producing_search(nest, privatives, True, True, k)
+                search_producing(nest, privatives, True, True, k)
                 if old_len - len(nest) == 0:
                     break
         diffs += 1
@@ -325,7 +312,7 @@ def incomplete_group(derived_words, nest, pos_tags):
         diffs = 1
         while shortest in derived_words:
             for key in nest:
-                if (diff_search_allmrphs(morph_selection(key),
+                if (search_diff_allmrphs(morph_selection(key),
                                          morph_selection(shortest)) ==
                     diffs):
                     nest[key].append(shortest)
@@ -348,7 +335,7 @@ def gerunds_processing(gerunds, nest, pos_tags):
         for k in range(0, diffs + 1):
             while 1:
                 old_len = len(nest)
-                producing_search(nest, gerunds, is_gerund_or_verb, pos_tags, k)
+                search_producing(nest, gerunds, is_gerund_or_verb, pos_tags, k)
                 if old_len - len(nest) == 0:
                     break
         #увеличиваем допустимое число отличий
@@ -366,27 +353,27 @@ def search_the_best_verb(morph, nest, asp, trans, word, diffs, pos_tags):
             #определяем переходность
             transitivity = tags.tag.transitivity
             if trans is True and asp is True:
-                if diff_search_allmrphs(morph_selection(key),
+                if search_diff_allmrphs(morph_selection(key),
                                         morph_selection(word)) == diffs:
                     nest[key].append(word)
                     return key
             else:
                 if asp is True:
                     if (transitivity == trans and
-                        diff_search_allmrphs(morph_selection(key),
+                        search_diff_allmrphs(morph_selection(key),
                                              morph_selection(word)) == diffs):
                         nest[key].append(word)
                         return key
                 else:
                     if trans is True:
                         if (aspect == asp and
-                            diff_search_allmrphs(morph_selection(key),
+                            search_diff_allmrphs(morph_selection(key),
                                                  morph_selection(word)) == diffs):
                             nest[key].append(word)
                             return key
 
 #функция поиска производящих слов для причастий
-def producing_search_for_participles(morph, participles, nest, diffs, pos_tags):
+def search_producing_for_participles(morph, participles, nest, diffs, pos_tags):
     proc_words = set()
     for word in participles:
         modif_word = modify_word(word)
@@ -449,12 +436,12 @@ def participles_processing(morph, participles, nest, pos_tags):
             while 1:
                 old_len = len(nest)
                 #ищем максимально соответствующие производящие глаголы
-                producing_search_for_participles(morph, participles,
+                search_producing_for_participles(morph, participles,
                                                  nest, k, pos_tags)
                 #ищем любые производящие глаголы
-                producing_search(nest, participles, is_verb, pos_tags, k)
+                search_producing(nest, participles, is_verb, pos_tags, k)
                 #ищем любые производящие причастия
-                producing_search(nest, participles, is_participle, pos_tags, k)
+                search_producing(nest, participles, is_participle, pos_tags, k)
                 if old_len - len(nest) == 0:
                     break
         diffs += 1
@@ -476,7 +463,7 @@ def nest_processing(vertices, nest, morph):
     #невозвратные причастия без отрицательных префиксов
     participles = set()
     #поиск вершины СГ
-    vertex = vertex_search(nest, pos_tags)
+    vertex = search_vertex(nest, pos_tags)
     res.update({vertex : []})
     vertices.append(vertex)
     nest.remove(vertex)
@@ -485,14 +472,14 @@ def nest_processing(vertices, nest, morph):
         for k in range(0, diffs + 1):
             while 1:
                 old_len = len(nest)
-                derivate_search(res, nest, reflexives, privatives,
+                search_derivate(res, nest, reflexives, privatives,
                                 gerunds, participles, k, pos_tags)
                 if old_len - len(nest) == 0:
                     break
         diffs += 1
         #добавляем новые дериваты только для вершины СГ
         for word in nest:
-            if diff_search_allmrphs(morph_selection(vertex),
+            if search_diff_allmrphs(morph_selection(vertex),
                                     morph_selection(word)) == diffs:
                 res[vertex].append(word)
                 res.update({word: []})
@@ -523,37 +510,21 @@ def main_processing(data, out_file):
     vertices = []
     #множество обрабатываемой в текущий момент группы слов
     curr_words = set()
-    #множество обрабатываемой в текущий момент группы алломорфных корней
-    curr_roots = set()
-    #шаблон корня
-    pattern = re.compile(r"\+\w+")
     for line in data:
-        #выделяем корень в слове
-        res = pattern.search(line)
-        root = res.group(0)[1:]
-        root = root.lower()
-        #выделяем слово из строки
-        word = (line.split())[0]
-        #обработка самого первого слова
-        if len(curr_roots) == 0:
-            #формируем множество корней
-            curr_roots = form_roots(root)
-        else:
-            #начало новой группы слов
-            if root not in curr_roots:
+        #начало новой группы слов
+        if "------" in line:
+            if len(curr_words) != 0:
                 #обработка текущей группы слов
                 count += 1
                 word_formation_nests.append(nest_processing(vertices,
                                                             curr_words, morph))
-                #формируем новое множество корней
-                curr_roots = form_roots(root)
                 #очищаем текущую групу слов
                 curr_words = set()
-        #добавляем слово в текущую группу слов для обработки
-        curr_words.add(word)
-    #обработка самой последней группы слов
-    count += 1
-    word_formation_nests.append(nest_processing(vertices, curr_words, morph))
+        else:
+            #выделяем слово из строки
+            word = (line.split())[0]
+            #добавляем слово в текущую группу слов для обработки
+            curr_words.add(word)
     print_nests_in_file(word_formation_nests, vertices, out_file)
     print("--- %s seconds ---\n" % (time.time() - start_time))
     print(count)
@@ -580,66 +551,3 @@ def print_nests_in_file(word_formation_nests, vertices,out_file):
         string += vertex + "\n"
         string += print_nest(word_formation_nests[i], vertex, 1)
     out_file.write(string)
-
-#функция поиска группы родственных слов для заданного слова
-def search_related_words(word, word_formation_nests):
-    for dic in word_formation_nests:
-        for key in dic:
-            if modify_word(key) == word:
-                return dic, key
-    print("Такого слова нет в словаре")
-    return {}, ""
-
-#функция продолжения цепочки, начиная с заданного слова
-def continue_chain(word, word_formation_nests):
-    #поиск родственной группы слов для заданного слова
-    nest, word = search_related_words(word, word_formation_nests)
-    if word != "":
-        string = word + "\n"
-        string += print_nest(nest, word, 1)
-        print(string)
-
-#функция печати цепочки
-def print_chain(chain, word):
-    res = ""
-    if word not in chain:
-        res += word + "\n"
-    else:
-        res += word + " --> " + print_chain(chain, chain[word])
-    return res
-
-#функция печати всех цепочек
-def print_all_chains(vertices, word, nest, chain):
-    if word in vertices:
-        string = print_chain(chain, word)
-        print(string)
-        return
-    for key in nest:
-        if word in nest[key]:
-            chain[key] = word
-            print_all_chains(vertices, key, nest, chain)
-
-#функция восстановления цепочки по конечному слову
-def restore_chain(word, word_formation_nests, vertices):
-    nest, word = search_related_words(word, word_formation_nests)
-    if word != "":
-        print_all_chains(vertices, word, nest, {})
-
-#консольный пользовательский интерфейс
-def user_interface(word_formation_nests, vertices):
-    while 1:
-        print("Выберите действие:")
-        print("1 - Восстановление цепочки по начальному слову")
-        print("2 - Восстановление цепочки по конечному слову")
-        print("3 - Выход")
-        enter = int(input())
-        if enter == 1:
-            print("Введите слово:")
-            word = input()
-            continue_chain(word, word_formation_nests)
-        if enter == 2:
-            print("Введите слово:")
-            word = input()
-            restore_chain(word, word_formation_nests, vertices)
-        if enter == 3:
-            break
