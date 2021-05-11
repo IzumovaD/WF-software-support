@@ -527,8 +527,7 @@ def main_processing(data, out_file):
             curr_words.add(word)
     print_nests_in_file(word_formation_nests, vertices, out_file)
     print("--- %s seconds ---\n" % (time.time() - start_time))
-    print(count)
-    user_interface(word_formation_nests, vertices)
+    print("Общее число деревьев: ", count)
 
 #функция печати одного гнезда
 def print_nest(nest, key, k):
