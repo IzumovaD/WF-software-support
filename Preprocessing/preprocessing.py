@@ -132,8 +132,10 @@ def main_processing(data, out_file):
 
 #ф-ция печати новых групп в файл
 def print_groups(new_groups, out_file):
-    string = ""
+    separator = "------"
+    string = separator + "\n"
     for group in new_groups:
         for word in group:
             string += word + "\n"
+        string += separator + "\n"
     out_file.write(string)
