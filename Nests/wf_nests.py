@@ -7,19 +7,19 @@ class Nest:
         vert = vert.replace("\n", "")
         self.nest = OrderedDict([((vert, 0), [])])
         self.vertex = vert
-        root = self.__form_root()
-        self.roots = self.__form_roots(root)
+        root = self.form_root()
+        self.roots = self.form_roots(root)
 
-    #функция выделения корня в слове
-    def __form_root(self):
+    #метод выделения корня в слове
+    def form_root(self):
         pattern = re.compile(r"\+\w+")
         res = pattern.search(self.vertex)
         root = res.group(0)[1:]
         root = root.lower()
         return root
 
-    #функция формирования группы алломорфных корней
-    def __form_roots(self, root):
+    #метод формирования группы алломорфных корней
+    def form_roots(self, root):
         res = set()
         #проверка, есть ли алломорфы у корня
         for group in allomorphs:
@@ -30,7 +30,7 @@ class Nest:
         res.add(root)
         return res
 
-    #функция добавления слова в дерево
+    #метод добавления слова в дерево
     def add_word(self, word, tabs):
         word = word.replace(" ", "")
         word = word.replace("\n", "")
@@ -39,14 +39,14 @@ class Nest:
         self.nest[parent].append(word)
         self.nest[(word, tabs)] = []
 
-    #функция поиска слова в дереве
+    #метод поиска слова в дереве
     def find_word(self, word):
         for key in self.nest:
             if self.modify_word(key[0]) == word:
                 return key[0]
         return False
 
-    #функция поиска корня в дереве
+    #метод поиска корня в дереве
     def find_root(self, root):
         root = self.modify_word(root)
         for elem in self.roots:
@@ -66,7 +66,7 @@ class Nest:
         else:
             return (key[0], key[1], self.nest[key])
 
-    #функция извлечения поддерева по заданной вершине
+    #метод извлечения поддерева по заданной вершине
     def restore_subtree(self, word, nest):
         word = word.lower()
         iterator = iter(nest)
@@ -96,7 +96,7 @@ class Nest:
         word = word.replace("*", "")
         return word.lower()
 
-    #функция перевода цепочки в строку
+    #метод перевода цепочки в строку
     def chain_to_str(self, chain, word):
         string = ""
         if word not in chain:
@@ -105,7 +105,7 @@ class Nest:
             string += word + " --> " + self.chain_to_str(chain, chain[word])
         return string    
 
-    #функция формирования и печати цепочки по конечному слову
+    #метод формирования и печати цепочки по конечному слову
     def restore_chain(self, word, chain, nest):
         if word == self.vertex:
             print(self.chain_to_str(chain, word))
@@ -121,7 +121,7 @@ class Nests:
         self.nests = []
         self.collect_nests(data)
 
-    #функция сбора деревьев из файла
+    #метод сбора деревьев из файла
     def collect_nests(self, data):
         nest = Nest(data[0])
         data = data[1:]
@@ -134,7 +134,7 @@ class Nests:
                 nest.add_word(line, tabs)
         self.nests.append(nest)
 
-    #функция поиска слова во всех деревьях 
+    #метод поиска слова во всех деревьях 
     def find_word_nest(self, word):
         word = word.lower()
         for nest in self.nests:
@@ -142,7 +142,7 @@ class Nests:
                 return nest
         raise Exception("Такого слова нет ни в одном дереве.")
 
-    #функция поиска корня во всех деревьях
+    #метод поиска корня во всех деревьях
     def find_root_nest(self, root):
         root = root.lower()
         for nest in self.nests:
